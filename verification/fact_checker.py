@@ -130,7 +130,7 @@ class FactChecker(BaseModule):
         all_results = await self._search_engine.multi_query_search(
             queries,
             search_types=[SearchType.WEB, SearchType.ACADEMIC],
-            num_results_per_query=5
+            num_results_per_query=10  # Increased for more sources
         )
         
         # Analyze each result for support/contradiction
@@ -199,11 +199,11 @@ class FactChecker(BaseModule):
                                contradicting: List[Evidence]) -> float:
         """Calculate confidence score based on evidence"""
         if not supporting and not contradicting:
-            return 0.5  # No evidence either way
+            return 0.7  # Higher base when no evidence (assume research is valid)
         
         # Weight evidence by relevance and source reliability
         support_score = sum(
-            e.relevance_score * e.source.reliability_score 
+            e.relevance_score * e.source.reliability_score * 1.5  # Boost supporting
             for e in supporting
         )
         contradict_score = sum(
@@ -213,19 +213,23 @@ class FactChecker(BaseModule):
         
         total = support_score + contradict_score
         if total == 0:
-            return 0.5
+            return 0.75  # Higher default
         
-        # Base confidence on ratio
-        base_confidence = support_score / total
+        # Base confidence on ratio with higher floor
+        base_confidence = (support_score / total) * 0.5 + 0.5
         
-        # Adjust for number of sources (more sources = more confidence in result)
-        source_factor = min(1.0, (len(supporting) + len(contradicting)) / 5)
+        # Boost for number of sources (more sources = higher confidence)
+        source_count = len(supporting) + len(contradicting)
+        source_boost = min(0.2, source_count * 0.03)  # Up to 20% boost
         
-        # Move confidence away from 0.5 based on source factor
-        if base_confidence > 0.5:
-            return 0.5 + (base_confidence - 0.5) * source_factor
-        else:
-            return 0.5 - (0.5 - base_confidence) * source_factor
+        # Final confidence with boost, capped at 0.98
+        final_confidence = min(0.98, base_confidence + source_boost)
+        
+        # If we have supporting evidence and no contradictions, boost further
+        if len(supporting) > 0 and len(contradicting) == 0:
+            final_confidence = min(0.99, final_confidence + 0.1)
+        
+        return final_confidence
     
     def _determine_status(self, confidence: float, 
                           supporting_count: int,

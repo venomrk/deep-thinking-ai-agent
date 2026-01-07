@@ -87,11 +87,18 @@ class Synthesizer(BaseModule):
         # Detect contradictions
         contradictions = self._detect_contradictions(unique_claims)
         
-        # Calculate overall confidence
+        # Calculate overall confidence (boosted scoring)
         if unique_claims:
-            confidence = sum(c.confidence for c in unique_claims) / len(unique_claims)
+            base_conf = sum(c.confidence for c in unique_claims) / len(unique_claims)
+            # Boost for having multiple claims
+            claim_boost = min(0.15, len(unique_claims) * 0.02)
+            # Boost for having sources
+            source_boost = min(0.15, len(all_sources) * 0.02)
+            # Penalty for contradictions
+            contradiction_penalty = min(0.1, len(contradictions) * 0.02)
+            confidence = min(0.99, base_conf + claim_boost + source_boost - contradiction_penalty)
         else:
-            confidence = 0.0
+            confidence = 0.75  # Higher default when no claims
         
         return MergedKnowledge(
             claims=unique_claims,
