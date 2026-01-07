@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Research Agent</title>
+    <meta name="description" content="Advanced AI-powered research and verification system">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🔬</span>
+                <h1>Deep Research Agent</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-ghost" id="statsBtn">📊 Stats</button>
+                <button class="btn btn-ghost" id="clearBtn">🗑️ Clear</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Query Section -->
+        <section class="query-section">
+            <div class="query-card glass">
+                <h2>Research Query</h2>
+                <div class="query-input-group">
+                    <textarea 
+                        id="queryInput" 
+                        placeholder="Enter your research question... (e.g., 'What are the latest advances in quantum computing?')"
+                        rows="3"
+                    ></textarea>
+                </div>
+                <div class="query-options">
+                    <div class="option-group">
+                        <label>Output Format</label>
+                        <select id="formatSelect">
+                            <option value="report">📄 Research Report</option>
+                            <option value="summary">📋 Executive Summary</option>
+                            <option value="facts">✅ Fact Sheet</option>
+                            <option value="trace">🌳 Reasoning Trace</option>
+                            <option value="json">📦 JSON</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="researchBtn">
+                        <span class="btn-icon">🔍</span>
+                        Start Research
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Section -->
+        <section class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-card glass">
+                <div class="progress-header">
+                    <h3>Research in Progress</h3>
+                    <span class="progress-percent" id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p class="progress-step" id="progressStep">Initializing...</p>
+                
+                <!-- Reasoning Tree Visualization -->
+                <div class="reasoning-section" id="reasoningSection" style="display: none;">
+                    <h4>Reasoning Tree</h4>
+                    <pre class="reasoning-tree" id="reasoningTree"></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <div class="results-card glass">
+                <div class="results-header">
+                    <h3>Research Results</h3>
+                    <div class="results-meta">
+                        <span class="confidence-badge" id="confidenceBadge">--% Confidence</span>
+                        <span class="source-count" id="sourceCount">0 Sources</span>
+                    </div>
+                </div>
+                
+                <div class="results-content" id="resultsContent">
+                    <!-- Content will be rendered here -->
+                </div>
+                
+                <div class="results-actions">
+                    <button class="btn btn-secondary" id="copyBtn">📋 Copy</button>
+                    <button class="btn btn-secondary" id="downloadBtn">💾 Download</button>
+                    <button class="btn btn-primary" id="newSearchBtn">🔍 New Search</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Modal -->
+        <div class="modal" id="statsModal" style="display: none;">
+            <div class="modal-content glass">
+                <div class="modal-header">
+                    <h3>System Statistics</h3>
+                    <button class="modal-close" id="closeStats">&times;</button>
+                </div>
+                <div class="modal-body" id="statsContent">
+                    Loading stats...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Deep Research Agent v1.0 | Advanced AI-Powered Research System</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
