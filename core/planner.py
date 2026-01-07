@@ -16,6 +16,9 @@ from ..core.base import (
 from ..config.prompts import PromptTemplates
 from ..config.settings import get_settings
 
+# Global flag to skip LLM calls after quota exhaustion (for speed)
+_llm_quota_exhausted = False
+
 
 @dataclass
 class Intent:
@@ -83,13 +86,24 @@ class Planner(BaseModule):
     
     async def _parse_intent_with_llm(self, query: str) -> Intent:
         """Parse intent using LLM"""
+        global _llm_quota_exhausted
+        
+        # Skip LLM if quota already exhausted (speed optimization)
+        if _llm_quota_exhausted:
+            return self._parse_intent_heuristic(query)
+        
         prompt = PromptTemplates.INTENT_PARSER.substitute(query=query)
         
         try:
             response = await self._llm_client.generate_content_async(prompt)
             return self._parse_intent_response(response.text)
         except Exception as e:
-            print(f"LLM intent parsing failed: {e}")
+            error_str = str(e)
+            if "429" in error_str or "quota" in error_str.lower():
+                _llm_quota_exhausted = True
+                print(f"LLM quota exhausted - switching to fast fallback mode")
+            else:
+                print(f"LLM intent parsing failed: {e}")
             return self._parse_intent_heuristic(query)
     
     def _parse_intent_response(self, response: str) -> Intent:
@@ -176,6 +190,12 @@ class Planner(BaseModule):
     
     async def _generate_sub_questions_llm(self, query: str, intent: Intent) -> List[SubQuestion]:
         """Generate sub-questions using LLM"""
+        global _llm_quota_exhausted
+        
+        # Skip LLM if quota already exhausted (speed optimization)
+        if _llm_quota_exhausted:
+            return self._generate_sub_questions_heuristic(query, intent)
+        
         prompt = PromptTemplates.SUB_QUESTION_GENERATOR.substitute(
             query=query,
             intent=intent.primary_intent,
@@ -186,7 +206,9 @@ class Planner(BaseModule):
             response = await self._llm_client.generate_content_async(prompt)
             return self._parse_sub_questions(response.text)
         except Exception as e:
-            print(f"LLM sub-question generation failed: {e}")
+            error_str = str(e)
+            if "429" in error_str or "quota" in error_str.lower():
+                _llm_quota_exhausted = True
             return self._generate_sub_questions_heuristic(query, intent)
     
     def _parse_sub_questions(self, response: str) -> List[SubQuestion]:
@@ -222,50 +244,16 @@ class Planner(BaseModule):
         return questions
     
     def _generate_sub_questions_heuristic(self, query: str, intent: Intent) -> List[SubQuestion]:
-        """Generate sub-questions using heuristics"""
-        questions = []
-        
-        # Base question
-        questions.append(SubQuestion(
+        """Generate sub-questions using heuristics (fast mode - single question)"""
+        # Single question for speed - covers the main query
+        return [SubQuestion(
             id="q0",
-            question=f"What are the key facts about {query}?",
-            rationale="Establish foundational understanding",
+            question=query,  # Use original query directly
+            rationale="Direct query for fast response",
             search_type=SearchType.WEB,
             importance=9,
             depends_on=[]
-        ))
-        
-        # Intent-specific questions
-        if intent.primary_intent == "comparison":
-            questions.append(SubQuestion(
-                id="q1",
-                question=f"What are the main differences in {query}?",
-                rationale="Identify distinguishing factors",
-                search_type=SearchType.WEB,
-                importance=8,
-                depends_on=["q0"]
-            ))
-        elif intent.primary_intent == "explanation":
-            questions.append(SubQuestion(
-                id="q1",
-                question=f"How does {query} work?",
-                rationale="Understand mechanics",
-                search_type=SearchType.WEB,
-                importance=8,
-                depends_on=["q0"]
-            ))
-        
-        # Add verification question
-        questions.append(SubQuestion(
-            id=f"q{len(questions)}",
-            question=f"What are common misconceptions about {query}?",
-            rationale="Identify potential errors",
-            search_type=SearchType.WEB,
-            importance=6,
-            depends_on=["q0"]
-        ))
-        
-        return questions
+        )]
     
     async def decide_search_strategy(self, task: ResearchTask,
                                       current_knowledge: str = "") -> SearchStrategy:
